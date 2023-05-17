@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "4976966791",
+    "project_id": "fingerprintlogin-2c1e9",
+    "storage_bucket": "fingerprintlogin-2c1e9.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:4976966791:android:69846732c71ac8ce728c22",
+        "android_client_info": {
+          "package_name": "se3.com.fingerprintlogin"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "4976966791-akeavp3tfc4itb148okmuorbajlu9b46.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDR63H-FsJDMJAQUJt7NoN_9yciMy9UVMA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "4976966791-akeavp3tfc4itb148okmuorbajlu9b46.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
