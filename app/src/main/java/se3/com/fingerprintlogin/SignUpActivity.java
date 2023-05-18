@@ -3,69 +3,57 @@ package se3.com.fingerprintlogin;
 import static androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_STRONG;
 import static androidx.biometric.BiometricManager.Authenticators.DEVICE_CREDENTIAL;
 
+import android.annotation.SuppressLint;
+import android.content.Intent;
+import android.os.Bundle;
+import android.provider.Settings;
+import android.util.Log;
+import android.view.View;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.TextView;
+import android.widget.Toast;
+
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.biometric.BiometricManager;
 import androidx.biometric.BiometricPrompt;
 import androidx.core.content.ContextCompat;
 
-import android.content.Intent;
-import android.os.Bundle;
-import android.provider.Settings;
-import android.security.keystore.KeyGenParameterSpec;
-import android.security.keystore.KeyProperties;
-import android.util.Log;
-import android.view.View;
-import android.widget.Button;
-import android.widget.EditText;
-import android.widget.ImageView;
-import android.widget.TextView;
-import android.widget.Toast;
-
-import java.security.InvalidAlgorithmParameterException;
-import java.security.InvalidKeyException;
-import java.security.KeyPair;
-import java.security.KeyPairGenerator;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
 import java.util.concurrent.Executor;
 
-import javax.crypto.Cipher;
-import javax.crypto.NoSuchPaddingException;
+public class SignUpActivity extends AppCompatActivity {
 
-public class MainActivity extends AppCompatActivity {
     private static final int REQUEST_CODE = 101010;
-
-    private static final String KEY_NAME = "my_key";
-    ImageView fingerprintLogin;
-
-    Button btnLogin;
     private EditText editTextName;
+    private EditText editTextEmail;
     private EditText editTextPassword;
-
-
+    private EditText editTextNumber;
     private Executor executor;
     private BiometricPrompt biometricPrompt;
     private BiometricPrompt.PromptInfo promptInfo;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+        setContentView(R.layout.activity_sign_up);
 
-        TextView txtSignUp = findViewById(R.id.txtSignUp);
+        TextView txtSignIn = findViewById(R.id.txtSignIn);
 
-        txtSignUp.setOnClickListener(new View.OnClickListener() {
+        txtSignIn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Intent intent = new Intent(MainActivity.this, SignUpActivity.class);
+                Intent intent = new Intent(SignUpActivity.this,MainActivity.class);
                 startActivity(intent);
                 finish();
             }
         });
+        editTextName = findViewById(R.id.edtSignUpName);
+        editTextEmail = findViewById(R.id.edtSignUpEmail);
+        editTextPassword = findViewById(R.id.edtSignUpPassword);
+        editTextNumber = findViewById(R.id.edtSignUpMobile);
 
-        btnLogin=findViewById(R.id.btnSignIn);
-        editTextName = findViewById(R.id.edtSignInName);
-        editTextPassword = findViewById(R.id.edtSignInPassword);
+        Button buttonSignUp = findViewById(R.id.btnSignUp);
 
         BiometricManager biometricManager = BiometricManager.from(this);
         switch (biometricManager.canAuthenticate(BIOMETRIC_STRONG | DEVICE_CREDENTIAL)) {
@@ -89,7 +77,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
         executor = ContextCompat.getMainExecutor(this);
-        biometricPrompt = new BiometricPrompt(MainActivity.this,
+        biometricPrompt = new BiometricPrompt(SignUpActivity.this,
                 executor, new BiometricPrompt.AuthenticationCallback() {
             @Override
             public void onAuthenticationError(int errorCode,
@@ -104,17 +92,9 @@ public class MainActivity extends AppCompatActivity {
             public void onAuthenticationSucceeded(
                     @NonNull BiometricPrompt.AuthenticationResult result) {
                 super.onAuthenticationSucceeded(result);
-                try {
-                    BiometricPrompt.CryptoObject cryptoObject = result.getCryptoObject();
-
-                    // Access the Cipher from the CryptoObject
-                    Cipher cipher = cryptoObject.getCipher();
-                }catch (Exception e) {
-                    e.printStackTrace();
-                }
                 Toast.makeText(getApplicationContext(),
                         "Authentication succeeded!", Toast.LENGTH_SHORT).show();
-                Intent intent = new Intent(MainActivity.this, HomeActivity.class);
+                Intent intent = new Intent(SignUpActivity.this, HomeActivity.class);
                 startActivity(intent);
             }
 
@@ -133,49 +113,13 @@ public class MainActivity extends AppCompatActivity {
                 .setNegativeButtonText("Cancel")
                 .build();
 
-        // Prompt appears when user clicks "fingerprint icon".
+        // Prompt appears when user clicks "Log in".
         // Consider integrating with the keystore to unlock cryptographic operations,
         // if needed by your app.
 
-        btnLogin.setOnClickListener(view -> {
+        buttonSignUp.setOnClickListener(view -> {
             biometricPrompt.authenticate(promptInfo);
         });
-
-        KeyPairGenerator keyPairGenerator = null;
-        try {
-            keyPairGenerator = KeyPairGenerator.getInstance(
-                    KeyProperties.KEY_ALGORITHM_RSA, "AndroidKeyStore");
-            keyPairGenerator.initialize(
-                    new KeyGenParameterSpec.Builder(KEY_NAME,
-                            KeyProperties.PURPOSE_ENCRYPT | KeyProperties.PURPOSE_DECRYPT)
-                            .setBlockModes(KeyProperties.BLOCK_MODE_CBC)
-                            .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_RSA_PKCS1)
-                            .setUserAuthenticationRequired(false) // Require fingerprint authentication
-                            .build());
-        } catch (NoSuchAlgorithmException e) {
-            e.printStackTrace();
-        } catch (NoSuchProviderException e) {
-            e.printStackTrace();
-        } catch (InvalidAlgorithmParameterException e) {
-            e.printStackTrace();
-        }
-        KeyPair keyPair = keyPairGenerator.generateKeyPair();
-
-        Cipher cipher = null;
-        try {
-            cipher = Cipher.getInstance(KeyProperties.KEY_ALGORITHM_RSA + "/"
-                    + KeyProperties.BLOCK_MODE_CBC + "/"
-                    + KeyProperties.ENCRYPTION_PADDING_RSA_PKCS1);
-            cipher.init(Cipher.ENCRYPT_MODE, keyPair.getPublic());
-
-        } catch (NoSuchAlgorithmException e) {
-            e.printStackTrace();
-        } catch (NoSuchPaddingException e) {
-            e.printStackTrace();
-        } catch (InvalidKeyException e) {
-            e.printStackTrace();
-        }
-
 
     }
 }
