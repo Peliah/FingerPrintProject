@@ -1,3 +1,4 @@
 <resources>
-    <string name="app_name">FingerPrintLogin</string>
+    <string name="app_name">FingerPrint App</string>
+    <string name="full_name">UserName</string>
 </resources>

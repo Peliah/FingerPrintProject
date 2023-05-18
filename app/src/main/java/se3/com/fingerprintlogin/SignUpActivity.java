@@ -3,12 +3,7 @@ package se3.com.fingerprintlogin;
 import static androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_STRONG;
 import static androidx.biometric.BiometricManager.Authenticators.DEVICE_CREDENTIAL;
 
-import androidx.annotation.NonNull;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.biometric.BiometricManager;
-import androidx.biometric.BiometricPrompt;
-import androidx.core.content.ContextCompat;
-
+import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.os.Bundle;
 import android.provider.Settings;
@@ -16,40 +11,49 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.biometric.BiometricManager;
+import androidx.biometric.BiometricPrompt;
+import androidx.core.content.ContextCompat;
+
 import java.util.concurrent.Executor;
 
-public class MainActivity extends AppCompatActivity {
-    private static final int REQUEST_CODE = 101010;
-    Button btnLogin;
-    private EditText editTextName;
-    private EditText editTextPassword;
+public class SignUpActivity extends AppCompatActivity {
 
+    private static final int REQUEST_CODE = 101010;
+    private EditText editTextName;
+    private EditText editTextEmail;
+    private EditText editTextPassword;
+    private EditText editTextNumber;
     private Executor executor;
     private BiometricPrompt biometricPrompt;
     private BiometricPrompt.PromptInfo promptInfo;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+        setContentView(R.layout.activity_sign_up);
 
-        TextView txtSignUp = findViewById(R.id.txtSignUp);
+        TextView txtSignIn = findViewById(R.id.txtSignIn);
 
-        txtSignUp.setOnClickListener(new View.OnClickListener() {
+        txtSignIn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Intent intent = new Intent(MainActivity.this, SignUpActivity.class);
+                Intent intent = new Intent(SignUpActivity.this,MainActivity.class);
                 startActivity(intent);
                 finish();
             }
         });
+        editTextName = findViewById(R.id.edtSignUpName);
+        editTextEmail = findViewById(R.id.edtSignUpEmail);
+        editTextPassword = findViewById(R.id.edtSignUpPassword);
+        editTextNumber = findViewById(R.id.edtSignUpMobile);
 
-        btnLogin=findViewById(R.id.btnSignIn);
-        editTextName = findViewById(R.id.edtSignInName);
-        editTextPassword = findViewById(R.id.edtSignInPassword);
+        Button buttonSignUp = findViewById(R.id.btnSignUp);
 
         BiometricManager biometricManager = BiometricManager.from(this);
         switch (biometricManager.canAuthenticate(BIOMETRIC_STRONG | DEVICE_CREDENTIAL)) {
@@ -73,7 +77,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
         executor = ContextCompat.getMainExecutor(this);
-        biometricPrompt = new BiometricPrompt(MainActivity.this,
+        biometricPrompt = new BiometricPrompt(SignUpActivity.this,
                 executor, new BiometricPrompt.AuthenticationCallback() {
             @Override
             public void onAuthenticationError(int errorCode,
@@ -90,7 +94,7 @@ public class MainActivity extends AppCompatActivity {
                 super.onAuthenticationSucceeded(result);
                 Toast.makeText(getApplicationContext(),
                         "Authentication succeeded!", Toast.LENGTH_SHORT).show();
-                Intent intent = new Intent(MainActivity.this, HomeActivity.class);
+                Intent intent = new Intent(SignUpActivity.this, HomeActivity.class);
                 startActivity(intent);
             }
 
@@ -113,8 +117,9 @@ public class MainActivity extends AppCompatActivity {
         // Consider integrating with the keystore to unlock cryptographic operations,
         // if needed by your app.
 
-        btnLogin.setOnClickListener(view -> {
+        buttonSignUp.setOnClickListener(view -> {
             biometricPrompt.authenticate(promptInfo);
         });
+
     }
 }
