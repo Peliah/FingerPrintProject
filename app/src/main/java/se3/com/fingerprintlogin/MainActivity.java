@@ -12,14 +12,26 @@ import androidx.core.content.ContextCompat;
 import android.content.Intent;
 import android.os.Bundle;
 import android.provider.Settings;
+import android.security.keystore.KeyGenParameterSpec;
+import android.security.keystore.KeyProperties;
 import android.util.Log;
 import android.widget.ImageView;
 import android.widget.Toast;
 
+import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidKeyException;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
 import java.util.concurrent.Executor;
+
+import javax.crypto.Cipher;
+import javax.crypto.NoSuchPaddingException;
 
 public class MainActivity extends AppCompatActivity {
     private static final int REQUEST_CODE = 101010;
+    private static final String KEY_NAME = "my_key";
     ImageView fingerprintLogin;
 
     private Executor executor;
@@ -68,6 +80,14 @@ public class MainActivity extends AppCompatActivity {
             public void onAuthenticationSucceeded(
                     @NonNull BiometricPrompt.AuthenticationResult result) {
                 super.onAuthenticationSucceeded(result);
+                try {
+                    BiometricPrompt.CryptoObject cryptoObject = result.getCryptoObject();
+
+                    // Access the Cipher from the CryptoObject
+                    Cipher cipher = cryptoObject.getCipher();
+                }catch (Exception e) {
+                    e.printStackTrace();
+                }
                 Toast.makeText(getApplicationContext(),
                         "Authentication succeeded!", Toast.LENGTH_SHORT).show();
                 Intent intent = new Intent(MainActivity.this, HomeActivity.class);
@@ -89,12 +109,49 @@ public class MainActivity extends AppCompatActivity {
                 .setNegativeButtonText("Use account password")
                 .build();
 
-        // Prompt appears when user clicks "Log in".
+        // Prompt appears when user clicks "fingerprint icon".
         // Consider integrating with the keystore to unlock cryptographic operations,
         // if needed by your app.
 
         fingerprintLogin.setOnClickListener(view -> {
             biometricPrompt.authenticate(promptInfo);
         });
+
+        KeyPairGenerator keyPairGenerator = null;
+        try {
+            keyPairGenerator = KeyPairGenerator.getInstance(
+                    KeyProperties.KEY_ALGORITHM_RSA, "AndroidKeyStore");
+            keyPairGenerator.initialize(
+                    new KeyGenParameterSpec.Builder(KEY_NAME,
+                            KeyProperties.PURPOSE_ENCRYPT | KeyProperties.PURPOSE_DECRYPT)
+                            .setBlockModes(KeyProperties.BLOCK_MODE_CBC)
+                            .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_RSA_PKCS1)
+                            .setUserAuthenticationRequired(false) // Require fingerprint authentication
+                            .build());
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        } catch (NoSuchProviderException e) {
+            e.printStackTrace();
+        } catch (InvalidAlgorithmParameterException e) {
+            e.printStackTrace();
+        }
+        KeyPair keyPair = keyPairGenerator.generateKeyPair();
+
+        Cipher cipher = null;
+        try {
+            cipher = Cipher.getInstance(KeyProperties.KEY_ALGORITHM_RSA + "/"
+                    + KeyProperties.BLOCK_MODE_CBC + "/"
+                    + KeyProperties.ENCRYPTION_PADDING_RSA_PKCS1);
+            cipher.init(Cipher.ENCRYPT_MODE, keyPair.getPublic());
+
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        } catch (NoSuchPaddingException e) {
+            e.printStackTrace();
+        } catch (InvalidKeyException e) {
+            e.printStackTrace();
+        }
+
+
     }
 }
