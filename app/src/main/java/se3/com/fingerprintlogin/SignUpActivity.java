@@ -7,7 +7,9 @@ import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.os.Bundle;
 import android.provider.Settings;
+import android.text.TextUtils;
 import android.util.Log;
+import android.util.Patterns;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -20,19 +22,36 @@ import androidx.biometric.BiometricManager;
 import androidx.biometric.BiometricPrompt;
 import androidx.core.content.ContextCompat;
 
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.tasks.Task;
+import com.google.android.material.textfield.TextInputEditText;
+import com.google.firebase.auth.AuthResult;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException;
+import com.google.firebase.auth.FirebaseAuthUserCollisionException;
+import com.google.firebase.auth.FirebaseAuthWeakPasswordException;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.auth.UserProfileChangeRequest;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.FirebaseFirestore;
+
 import java.util.concurrent.Executor;
 
 public class SignUpActivity extends AppCompatActivity {
-
+    private FirebaseAuth firebaseAuth;
     private static final int REQUEST_CODE = 101010;
-    private EditText editTextName;
-    private EditText editTextEmail;
-    private EditText editTextPassword;
-    private EditText editTextNumber;
+    private TextInputEditText editTextName;
+    private TextInputEditText editTextEmail;
+    private TextInputEditText editTextPassword;
+    private TextInputEditText editTextNumber;
     private Executor executor;
     private BiometricPrompt biometricPrompt;
     private BiometricPrompt.PromptInfo promptInfo;
-
+    private Button buttonSignUp;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -52,8 +71,12 @@ public class SignUpActivity extends AppCompatActivity {
         editTextEmail = findViewById(R.id.edtSignUpEmail);
         editTextPassword = findViewById(R.id.edtSignUpPassword);
         editTextNumber = findViewById(R.id.edtSignUpMobile);
+        firebaseAuth = FirebaseAuth.getInstance();
+        buttonSignUp = findViewById(R.id.btnSignUp);
 
-        Button buttonSignUp = findViewById(R.id.btnSignUp);
+
+
+
 
         BiometricManager biometricManager = BiometricManager.from(this);
         switch (biometricManager.canAuthenticate(BIOMETRIC_STRONG | DEVICE_CREDENTIAL)) {
@@ -95,7 +118,9 @@ public class SignUpActivity extends AppCompatActivity {
                 Toast.makeText(getApplicationContext(),
                         "Authentication succeeded!", Toast.LENGTH_SHORT).show();
                 Intent intent = new Intent(SignUpActivity.this, HomeActivity.class);
+                intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_CLEAR_TASK | Intent.FLAG_ACTIVITY_NEW_TASK);
                 startActivity(intent);
+                finish();
             }
 
             @Override
@@ -117,9 +142,125 @@ public class SignUpActivity extends AppCompatActivity {
         // Consider integrating with the keystore to unlock cryptographic operations,
         // if needed by your app.
 
-        buttonSignUp.setOnClickListener(view -> {
-            biometricPrompt.authenticate(promptInfo);
+        buttonSignUp.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                //Obtain enetered data
+                String textFullName = editTextName.getText().toString();
+                String textEmail = editTextEmail.getText().toString();
+                String textPassword = editTextPassword.getText().toString();
+                String textNumber = editTextNumber.getText().toString();
+                if(isValidDetails(textFullName, textEmail, textNumber, textPassword)){
+                    registerUser(textFullName, textEmail, textNumber, textPassword);
+                    biometricPrompt.authenticate(promptInfo);
+                }
+            }
         });
 
     }
+
+    private boolean isValidDetails(String name, String email, String number, String password) {
+
+        if (TextUtils.isEmpty(name)){
+            editTextName.setError("Full name required!");
+            editTextName.requestFocus();
+            return false;
+        }else if(TextUtils.isEmpty(email)){
+            editTextEmail.setError("Email required!");
+            editTextEmail.requestFocus();
+            return false;
+
+//        }else if(!Patterns.EMAIL_ADDRESS.matcher(email).matches()){
+//            editTextEmail.setError("Valid email required!");
+//            editTextEmail.requestFocus();
+//            return false;
+
+        }else if(TextUtils.isEmpty(number)){
+            editTextNumber.setError("Phone number required!");
+            editTextNumber.requestFocus();
+            return false;
+
+        }else if(number.length() !=9 ){
+            editTextNumber.setError("Valid Phone number required!");
+            editTextNumber.requestFocus();
+            return false;
+
+        }else if(TextUtils.isEmpty(password)){
+            editTextPassword.setError("Password required!");
+            editTextPassword.requestFocus();
+            return false;
+
+        }
+        return true;
+    }
+
+    private void registerUser(String name, String email, String number, String password){
+
+        firebaseAuth.createUserWithEmailAndPassword(email, password).addOnCompleteListener(SignUpActivity.this, new OnCompleteListener<AuthResult>() {
+            @Override
+            public void onComplete(@NonNull Task<AuthResult> task) {
+                if (task.isSuccessful()){
+                    Toast.makeText(SignUpActivity.this, name+" successfully registered", Toast.LENGTH_LONG).show();
+                    FirebaseUser firebaseUser = firebaseAuth.getCurrentUser();
+//                    UserProfileChangeRequest profileChangeRequest = new UserProfileChangeRequest.Builder().setDisplayName(name).build();
+//                    firebaseUser.updateProfile(profileChangeRequest);
+                    UserDetails userDetails = new UserDetails(name, email, number);
+                    String userId = firebaseUser.getUid();
+                    DocumentReference databaseReference = FirebaseFirestore.getInstance().collection("Registered Users").document(userId);
+                    databaseReference.set(userDetails)
+                            .addOnSuccessListener(new OnSuccessListener<Void>() {
+                                @Override
+                                public void onSuccess(Void unused) {
+                                    Toast.makeText(SignUpActivity.this, "Registration successful", Toast.LENGTH_SHORT).show();
+                                }
+                            }).addOnFailureListener(new OnFailureListener() {
+                                @Override
+                                public void onFailure(@NonNull Exception e) {
+                                    String errorMessage = e.getMessage();
+                                    // Handle the error according to your requirements
+                                    Toast.makeText(SignUpActivity.this, "Registration failed", Toast.LENGTH_SHORT).show();
+
+                                }
+                            });
+
+                }else
+                {
+                    try {
+                        throw task.getException();
+                    } catch (FirebaseAuthWeakPasswordException weakPasswordException) {
+                        // Handle weak password error
+                        String errorCode = weakPasswordException.getErrorCode();
+                        String errorMessage = weakPasswordException.getMessage();
+                        Toast.makeText(SignUpActivity.this, errorCode+" "+errorMessage, Toast.LENGTH_SHORT).show();
+
+                        // Handle the error according to your requirements
+                    } catch (FirebaseAuthInvalidCredentialsException invalidCredentialsException) {
+                        // Handle invalid email error
+                        String errorCode = invalidCredentialsException.getErrorCode();
+                        String errorMessage = invalidCredentialsException.getMessage();
+                        Toast.makeText(SignUpActivity.this, errorCode+" "+errorMessage, Toast.LENGTH_SHORT).show();
+
+                        // Handle the error according to your requirements
+                    } catch (FirebaseAuthUserCollisionException userCollisionException) {
+                        // Handle user collision error (e.g., email already exists)
+                        String errorCode = userCollisionException.getErrorCode();
+                        String errorMessage = userCollisionException.getMessage();
+                        Toast.makeText(SignUpActivity.this, errorCode+" "+errorMessage, Toast.LENGTH_SHORT).show();
+
+                        // Handle the error according to your requirements
+                    } catch (Exception e) {
+                        // Handle other errors
+                        String errorMessage = e.getMessage();
+                        // Handle the error according to your requirements
+                        Toast.makeText(SignUpActivity.this, errorMessage, Toast.LENGTH_SHORT).show();
+
+                    }
+
+                    Toast.makeText(SignUpActivity.this, "Registration failed", Toast.LENGTH_SHORT).show();
+                }
+//                    Toast.makeText(SignUpActivity.this, "Registration failed", Toast.LENGTH_SHORT).show();
+                }
+        });
+    }
+
 }

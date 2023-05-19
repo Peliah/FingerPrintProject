@@ -22,6 +22,16 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.Task;
+import com.google.android.material.textfield.TextInputEditText;
+import com.google.firebase.auth.AuthResult;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FirebaseFirestore;
+
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.KeyPair;
@@ -40,10 +50,10 @@ public class MainActivity extends AppCompatActivity {
     ImageView fingerprintLogin;
 
     Button btnLogin;
-    private EditText editTextName;
-    private EditText editTextPassword;
+    private TextInputEditText editTextName;
+    private TextInputEditText editTextPassword;
 
-
+    private FirebaseAuth mAuth;
     private Executor executor;
     private BiometricPrompt biometricPrompt;
     private BiometricPrompt.PromptInfo promptInfo;
@@ -52,6 +62,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        mAuth = FirebaseAuth.getInstance();
         TextView txtSignUp = findViewById(R.id.txtSignUp);
 
         txtSignUp.setOnClickListener(new View.OnClickListener() {
@@ -104,18 +115,13 @@ public class MainActivity extends AppCompatActivity {
             public void onAuthenticationSucceeded(
                     @NonNull BiometricPrompt.AuthenticationResult result) {
                 super.onAuthenticationSucceeded(result);
-                try {
-                    BiometricPrompt.CryptoObject cryptoObject = result.getCryptoObject();
 
-                    // Access the Cipher from the CryptoObject
-                    Cipher cipher = cryptoObject.getCipher();
-                }catch (Exception e) {
-                    e.printStackTrace();
-                }
                 Toast.makeText(getApplicationContext(),
                         "Authentication succeeded!", Toast.LENGTH_SHORT).show();
                 Intent intent = new Intent(MainActivity.this, HomeActivity.class);
+                intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_CLEAR_TASK | Intent.FLAG_ACTIVITY_NEW_TASK);
                 startActivity(intent);
+                finish();
             }
 
             @Override
@@ -133,49 +139,57 @@ public class MainActivity extends AppCompatActivity {
                 .setNegativeButtonText("Cancel")
                 .build();
 
-        // Prompt appears when user clicks "fingerprint icon".
-        // Consider integrating with the keystore to unlock cryptographic operations,
-        // if needed by your app.
 
-        btnLogin.setOnClickListener(view -> {
-            biometricPrompt.authenticate(promptInfo);
+        btnLogin.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                String email = editTextName.getText().toString();
+                String password = editTextPassword.getText().toString();
+
+                loginUser(email, password);
+                biometricPrompt.authenticate(promptInfo);
+            }
         });
 
-        KeyPairGenerator keyPairGenerator = null;
-        try {
-            keyPairGenerator = KeyPairGenerator.getInstance(
-                    KeyProperties.KEY_ALGORITHM_RSA, "AndroidKeyStore");
-            keyPairGenerator.initialize(
-                    new KeyGenParameterSpec.Builder(KEY_NAME,
-                            KeyProperties.PURPOSE_ENCRYPT | KeyProperties.PURPOSE_DECRYPT)
-                            .setBlockModes(KeyProperties.BLOCK_MODE_CBC)
-                            .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_RSA_PKCS1)
-                            .setUserAuthenticationRequired(false) // Require fingerprint authentication
-                            .build());
-        } catch (NoSuchAlgorithmException e) {
-            e.printStackTrace();
-        } catch (NoSuchProviderException e) {
-            e.printStackTrace();
-        } catch (InvalidAlgorithmParameterException e) {
-            e.printStackTrace();
-        }
-        KeyPair keyPair = keyPairGenerator.generateKeyPair();
+    }
 
-        Cipher cipher = null;
-        try {
-            cipher = Cipher.getInstance(KeyProperties.KEY_ALGORITHM_RSA + "/"
-                    + KeyProperties.BLOCK_MODE_CBC + "/"
-                    + KeyProperties.ENCRYPTION_PADDING_RSA_PKCS1);
-            cipher.init(Cipher.ENCRYPT_MODE, keyPair.getPublic());
+    private void loginUser(String email, String password) {
+        mAuth.signInWithEmailAndPassword(email, password)
+                .addOnCompleteListener(this, new OnCompleteListener<AuthResult>() {
+                    @Override
+                    public void onComplete(@NonNull Task<AuthResult> task) {
+                        if (task.isSuccessful()) {
+                            FirebaseUser user = mAuth.getCurrentUser();
+                            String userId = user.getUid();
 
-        } catch (NoSuchAlgorithmException e) {
-            e.printStackTrace();
-        } catch (NoSuchPaddingException e) {
-            e.printStackTrace();
-        } catch (InvalidKeyException e) {
-            e.printStackTrace();
-        }
+                            DocumentReference userRef = FirebaseFirestore.getInstance()
+                                    .collection("Registered Users")
+                                    .document(userId);
+                            userRef.get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
+                                @Override
+                                public void onComplete(@NonNull Task<DocumentSnapshot> task) {
+                                    if (task.isSuccessful()){
+                                        DocumentSnapshot documentSnapshot = task.getResult();
+                                        if (documentSnapshot.exists()){
+                                            UserDetails loggedInUser = documentSnapshot.toObject(UserDetails.class);
+                                            //Intent intent = new Intent(MainActivity.this, HomeActivity.class);
+                                            Toast.makeText(MainActivity.this, "Logged In successfully", Toast.LENGTH_SHORT).show();
 
+                                        }else{
+                                            Toast.makeText(MainActivity.this, "User document not found", Toast.LENGTH_SHORT).show();
+                                        }
+                                    }else {
+                                        String errorMessage = task.getException().getMessage();
+                                        Toast.makeText(MainActivity.this, "Error: " + errorMessage, Toast.LENGTH_SHORT).show();
 
+                                    }
+                                }
+                            });
+                        } else {
+                            String errorMessage = task.getException().getMessage();
+                            Toast.makeText(MainActivity.this, "Login failed: " + errorMessage, Toast.LENGTH_SHORT).show();
+                        }
+                    }
+                });
     }
 }
