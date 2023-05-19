@@ -9,6 +9,7 @@ import androidx.biometric.BiometricManager;
 import androidx.biometric.BiometricPrompt;
 import androidx.core.content.ContextCompat;
 
+import android.app.ProgressDialog;
 import android.content.Intent;
 import android.os.Bundle;
 import android.provider.Settings;
@@ -57,6 +58,8 @@ public class MainActivity extends AppCompatActivity {
     private Executor executor;
     private BiometricPrompt biometricPrompt;
     private BiometricPrompt.PromptInfo promptInfo;
+    private ProgressDialog progressDialog;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -64,6 +67,10 @@ public class MainActivity extends AppCompatActivity {
 
         mAuth = FirebaseAuth.getInstance();
         TextView txtSignUp = findViewById(R.id.txtSignUp);
+        progressDialog = new ProgressDialog(MainActivity.this);
+        progressDialog.setMessage("Logging In...");
+        progressDialog.setCancelable(false);
+
 
         txtSignUp.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -143,11 +150,52 @@ public class MainActivity extends AppCompatActivity {
         btnLogin.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                progressDialog.show();
                 String email = editTextName.getText().toString();
                 String password = editTextPassword.getText().toString();
 
-                loginUser(email, password);
-                biometricPrompt.authenticate(promptInfo);
+                //loginUser(email, password);
+                mAuth.signInWithEmailAndPassword(email, password)
+                        .addOnCompleteListener(new OnCompleteListener<AuthResult>() {
+                            @Override
+                            public void onComplete(@NonNull Task<AuthResult> task) {
+                                if (task.isSuccessful()) {
+                                    FirebaseUser user = mAuth.getCurrentUser();
+                                    String userId = user.getUid();
+
+                                    DocumentReference userRef = FirebaseFirestore.getInstance()
+                                            .collection("Registered Users")
+                                            .document(userId);
+                                    userRef.get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
+                                        @Override
+                                        public void onComplete(@NonNull Task<DocumentSnapshot> task) {
+                                            if (task.isSuccessful()){
+                                                DocumentSnapshot documentSnapshot = task.getResult();
+                                                if (documentSnapshot.exists()){
+                                                    UserDetails loggedInUser = documentSnapshot.toObject(UserDetails.class);
+                                                    //Intent intent = new Intent(MainActivity.this, HomeActivity.class);
+                                                    biometricPrompt.authenticate(promptInfo);
+                                                    Toast.makeText(MainActivity.this, "Logged In successfully", Toast.LENGTH_SHORT).show();
+                                                    progressDialog.dismiss();
+
+
+                                                }else{
+                                                    Toast.makeText(MainActivity.this, "User document not found", Toast.LENGTH_SHORT).show();
+                                                }
+                                            }else {
+                                                String errorMessage = task.getException().getMessage();
+                                                Toast.makeText(MainActivity.this, "Error: " + errorMessage, Toast.LENGTH_SHORT).show();
+
+                                            }
+                                        }
+                                    });
+                                } else {
+                                    String errorMessage = task.getException().getMessage();
+                                    Toast.makeText(MainActivity.this, "Login failed: " + errorMessage, Toast.LENGTH_SHORT).show();
+                                }
+                            }
+                        });
+//                biometricPrompt.authenticate(promptInfo);
             }
         });
 

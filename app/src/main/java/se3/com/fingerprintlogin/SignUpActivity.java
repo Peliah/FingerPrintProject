@@ -4,6 +4,7 @@ import static androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_STRON
 import static androidx.biometric.BiometricManager.Authenticators.DEVICE_CREDENTIAL;
 
 import android.annotation.SuppressLint;
+import android.app.ProgressDialog;
 import android.content.Intent;
 import android.os.Bundle;
 import android.provider.Settings;
@@ -52,12 +53,18 @@ public class SignUpActivity extends AppCompatActivity {
     private BiometricPrompt biometricPrompt;
     private BiometricPrompt.PromptInfo promptInfo;
     private Button buttonSignUp;
+    private ProgressDialog progressDialog;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_sign_up);
 
         TextView txtSignIn = findViewById(R.id.txtSignIn);
+        progressDialog = new ProgressDialog(SignUpActivity.this);
+        progressDialog.setMessage("Signing up...");
+        progressDialog.setCancelable(false);
+
 
         txtSignIn.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -145,14 +152,84 @@ public class SignUpActivity extends AppCompatActivity {
         buttonSignUp.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                progressDialog.show();
+
                 //Obtain enetered data
                 String textFullName = editTextName.getText().toString();
                 String textEmail = editTextEmail.getText().toString();
                 String textPassword = editTextPassword.getText().toString();
                 String textNumber = editTextNumber.getText().toString();
                 if(isValidDetails(textFullName, textEmail, textNumber, textPassword)){
-                    registerUser(textFullName, textEmail, textNumber, textPassword);
-                    biometricPrompt.authenticate(promptInfo);
+                    //registerUser(textFullName, textEmail, textNumber, textPassword);
+                    firebaseAuth.createUserWithEmailAndPassword(textEmail, textPassword).addOnCompleteListener(SignUpActivity.this, new OnCompleteListener<AuthResult>() {
+                        @Override
+                        public void onComplete(@NonNull Task<AuthResult> task) {
+                            if (task.isSuccessful()){
+                                Toast.makeText(SignUpActivity.this, textFullName+" is successfully registered", Toast.LENGTH_LONG).show();
+                                FirebaseUser firebaseUser = firebaseAuth.getCurrentUser();
+//                    UserProfileChangeRequest profileChangeRequest = new UserProfileChangeRequest.Builder().setDisplayName(name).build();
+//                    firebaseUser.updateProfile(profileChangeRequest);
+                                UserDetails userDetails = new UserDetails(textFullName, textEmail, textNumber);
+                                String userId = firebaseUser.getUid();
+                                DocumentReference databaseReference = FirebaseFirestore.getInstance().collection("Registered Users").document(userId);
+                                databaseReference.set(userDetails)
+                                        .addOnSuccessListener(new OnSuccessListener<Void>() {
+                                            @Override
+                                            public void onSuccess(Void unused) {
+                                                biometricPrompt.authenticate(promptInfo);
+                                                Toast.makeText(SignUpActivity.this, "Registration successful", Toast.LENGTH_SHORT).show();
+                                                progressDialog.dismiss();
+
+                                            }
+                                        }).addOnFailureListener(new OnFailureListener() {
+                                            @Override
+                                            public void onFailure(@NonNull Exception e) {
+                                                String errorMessage = e.getMessage();
+                                                // Handle the error according to your requirements
+                                                Toast.makeText(SignUpActivity.this, "Registration failed", Toast.LENGTH_SHORT).show();
+
+                                            }
+                                        });
+
+                            }else
+                            {
+                                try {
+                                    throw task.getException();
+                                } catch (FirebaseAuthWeakPasswordException weakPasswordException) {
+                                    // Handle weak password error
+                                    String errorCode = weakPasswordException.getErrorCode();
+                                    String errorMessage = weakPasswordException.getMessage();
+                                    Toast.makeText(SignUpActivity.this, errorCode+" "+errorMessage, Toast.LENGTH_SHORT).show();
+
+                                    // Handle the error according to your requirements
+                                } catch (FirebaseAuthInvalidCredentialsException invalidCredentialsException) {
+                                    // Handle invalid email error
+                                    String errorCode = invalidCredentialsException.getErrorCode();
+                                    String errorMessage = invalidCredentialsException.getMessage();
+                                    Toast.makeText(SignUpActivity.this, errorCode+" "+errorMessage, Toast.LENGTH_SHORT).show();
+
+                                    // Handle the error according to your requirements
+                                } catch (FirebaseAuthUserCollisionException userCollisionException) {
+                                    // Handle user collision error (e.g., email already exists)
+                                    String errorCode = userCollisionException.getErrorCode();
+                                    String errorMessage = userCollisionException.getMessage();
+                                    Toast.makeText(SignUpActivity.this, errorCode+" "+errorMessage, Toast.LENGTH_SHORT).show();
+
+                                    // Handle the error according to your requirements
+                                } catch (Exception e) {
+                                    // Handle other errors
+                                    String errorMessage = e.getMessage();
+                                    // Handle the error according to your requirements
+                                    Toast.makeText(SignUpActivity.this, errorMessage, Toast.LENGTH_SHORT).show();
+
+                                }
+
+                                Toast.makeText(SignUpActivity.this, "Registration failed", Toast.LENGTH_SHORT).show();
+                            }
+//                    Toast.makeText(SignUpActivity.this, "Registration failed", Toast.LENGTH_SHORT).show();
+                        }
+                    });
+//                    biometricPrompt.authenticate(promptInfo);
                 }
             }
         });
@@ -170,10 +247,10 @@ public class SignUpActivity extends AppCompatActivity {
             editTextEmail.requestFocus();
             return false;
 
-//        }else if(!Patterns.EMAIL_ADDRESS.matcher(email).matches()){
-//            editTextEmail.setError("Valid email required!");
-//            editTextEmail.requestFocus();
-//            return false;
+        }else if(!Patterns.EMAIL_ADDRESS.matcher(email).matches()){
+            editTextEmail.setError("Valid email required!");
+            editTextEmail.requestFocus();
+            return false;
 
         }else if(TextUtils.isEmpty(number)){
             editTextNumber.setError("Phone number required!");
@@ -196,71 +273,71 @@ public class SignUpActivity extends AppCompatActivity {
 
     private void registerUser(String name, String email, String number, String password){
 
-        firebaseAuth.createUserWithEmailAndPassword(email, password).addOnCompleteListener(SignUpActivity.this, new OnCompleteListener<AuthResult>() {
-            @Override
-            public void onComplete(@NonNull Task<AuthResult> task) {
-                if (task.isSuccessful()){
-                    Toast.makeText(SignUpActivity.this, name+" successfully registered", Toast.LENGTH_LONG).show();
-                    FirebaseUser firebaseUser = firebaseAuth.getCurrentUser();
-//                    UserProfileChangeRequest profileChangeRequest = new UserProfileChangeRequest.Builder().setDisplayName(name).build();
-//                    firebaseUser.updateProfile(profileChangeRequest);
-                    UserDetails userDetails = new UserDetails(name, email, number);
-                    String userId = firebaseUser.getUid();
-                    DocumentReference databaseReference = FirebaseFirestore.getInstance().collection("Registered Users").document(userId);
-                    databaseReference.set(userDetails)
-                            .addOnSuccessListener(new OnSuccessListener<Void>() {
-                                @Override
-                                public void onSuccess(Void unused) {
-                                    Toast.makeText(SignUpActivity.this, "Registration successful", Toast.LENGTH_SHORT).show();
-                                }
-                            }).addOnFailureListener(new OnFailureListener() {
-                                @Override
-                                public void onFailure(@NonNull Exception e) {
-                                    String errorMessage = e.getMessage();
-                                    // Handle the error according to your requirements
-                                    Toast.makeText(SignUpActivity.this, "Registration failed", Toast.LENGTH_SHORT).show();
-
-                                }
-                            });
-
-                }else
-                {
-                    try {
-                        throw task.getException();
-                    } catch (FirebaseAuthWeakPasswordException weakPasswordException) {
-                        // Handle weak password error
-                        String errorCode = weakPasswordException.getErrorCode();
-                        String errorMessage = weakPasswordException.getMessage();
-                        Toast.makeText(SignUpActivity.this, errorCode+" "+errorMessage, Toast.LENGTH_SHORT).show();
-
-                        // Handle the error according to your requirements
-                    } catch (FirebaseAuthInvalidCredentialsException invalidCredentialsException) {
-                        // Handle invalid email error
-                        String errorCode = invalidCredentialsException.getErrorCode();
-                        String errorMessage = invalidCredentialsException.getMessage();
-                        Toast.makeText(SignUpActivity.this, errorCode+" "+errorMessage, Toast.LENGTH_SHORT).show();
-
-                        // Handle the error according to your requirements
-                    } catch (FirebaseAuthUserCollisionException userCollisionException) {
-                        // Handle user collision error (e.g., email already exists)
-                        String errorCode = userCollisionException.getErrorCode();
-                        String errorMessage = userCollisionException.getMessage();
-                        Toast.makeText(SignUpActivity.this, errorCode+" "+errorMessage, Toast.LENGTH_SHORT).show();
-
-                        // Handle the error according to your requirements
-                    } catch (Exception e) {
-                        // Handle other errors
-                        String errorMessage = e.getMessage();
-                        // Handle the error according to your requirements
-                        Toast.makeText(SignUpActivity.this, errorMessage, Toast.LENGTH_SHORT).show();
-
-                    }
-
-                    Toast.makeText(SignUpActivity.this, "Registration failed", Toast.LENGTH_SHORT).show();
-                }
+//        firebaseAuth.createUserWithEmailAndPassword(email, password).addOnCompleteListener(SignUpActivity.this, new OnCompleteListener<AuthResult>() {
+//            @Override
+//            public void onComplete(@NonNull Task<AuthResult> task) {
+//                if (task.isSuccessful()){
+//                    Toast.makeText(SignUpActivity.this, name+" successfully registered", Toast.LENGTH_LONG).show();
+//                    FirebaseUser firebaseUser = firebaseAuth.getCurrentUser();
+////                    UserProfileChangeRequest profileChangeRequest = new UserProfileChangeRequest.Builder().setDisplayName(name).build();
+////                    firebaseUser.updateProfile(profileChangeRequest);
+//                    UserDetails userDetails = new UserDetails(name, email, number);
+//                    String userId = firebaseUser.getUid();
+//                    DocumentReference databaseReference = FirebaseFirestore.getInstance().collection("Registered Users").document(userId);
+//                    databaseReference.set(userDetails)
+//                            .addOnSuccessListener(new OnSuccessListener<Void>() {
+//                                @Override
+//                                public void onSuccess(Void unused) {
+//                                    Toast.makeText(SignUpActivity.this, "Registration successful", Toast.LENGTH_SHORT).show();
+//                                }
+//                            }).addOnFailureListener(new OnFailureListener() {
+//                                @Override
+//                                public void onFailure(@NonNull Exception e) {
+//                                    String errorMessage = e.getMessage();
+//                                    // Handle the error according to your requirements
+//                                    Toast.makeText(SignUpActivity.this, "Registration failed", Toast.LENGTH_SHORT).show();
+//
+//                                }
+//                            });
+//
+//                }else
+//                {
+//                    try {
+//                        throw task.getException();
+//                    } catch (FirebaseAuthWeakPasswordException weakPasswordException) {
+//                        // Handle weak password error
+//                        String errorCode = weakPasswordException.getErrorCode();
+//                        String errorMessage = weakPasswordException.getMessage();
+//                        Toast.makeText(SignUpActivity.this, errorCode+" "+errorMessage, Toast.LENGTH_SHORT).show();
+//
+//                        // Handle the error according to your requirements
+//                    } catch (FirebaseAuthInvalidCredentialsException invalidCredentialsException) {
+//                        // Handle invalid email error
+//                        String errorCode = invalidCredentialsException.getErrorCode();
+//                        String errorMessage = invalidCredentialsException.getMessage();
+//                        Toast.makeText(SignUpActivity.this, errorCode+" "+errorMessage, Toast.LENGTH_SHORT).show();
+//
+//                        // Handle the error according to your requirements
+//                    } catch (FirebaseAuthUserCollisionException userCollisionException) {
+//                        // Handle user collision error (e.g., email already exists)
+//                        String errorCode = userCollisionException.getErrorCode();
+//                        String errorMessage = userCollisionException.getMessage();
+//                        Toast.makeText(SignUpActivity.this, errorCode+" "+errorMessage, Toast.LENGTH_SHORT).show();
+//
+//                        // Handle the error according to your requirements
+//                    } catch (Exception e) {
+//                        // Handle other errors
+//                        String errorMessage = e.getMessage();
+//                        // Handle the error according to your requirements
+//                        Toast.makeText(SignUpActivity.this, errorMessage, Toast.LENGTH_SHORT).show();
+//
+//                    }
+//
 //                    Toast.makeText(SignUpActivity.this, "Registration failed", Toast.LENGTH_SHORT).show();
-                }
-        });
+//                }
+////                    Toast.makeText(SignUpActivity.this, "Registration failed", Toast.LENGTH_SHORT).show();
+//                }
+//        });
     }
 
 }
