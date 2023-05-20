@@ -15,6 +15,7 @@ import android.os.Bundle;
 import android.provider.Settings;
 import android.security.keystore.KeyGenParameterSpec;
 import android.security.keystore.KeyProperties;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -24,10 +25,14 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.Task;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseAuthException;
+import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException;
+import com.google.firebase.auth.FirebaseAuthInvalidUserException;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
@@ -153,6 +158,20 @@ public class MainActivity extends AppCompatActivity {
                 progressDialog.show();
                 String email = editTextName.getText().toString();
                 String password = editTextPassword.getText().toString();
+                if (TextUtils.isEmpty(email)) {
+                    // Show an error message or handle the case when email or password is empty
+                    progressDialog.dismiss();
+                    editTextName.setError("Email required!");
+                    editTextName.requestFocus();
+                    Toast.makeText(MainActivity.this, "Please enter valid email", Toast.LENGTH_SHORT).show();
+                    return;
+                }else if(TextUtils.isEmpty(password)){
+                    progressDialog.dismiss();
+                    editTextPassword.setError("Password required!");
+                    editTextPassword.requestFocus();
+                    Toast.makeText(MainActivity.this, "Please enter valid password", Toast.LENGTH_SHORT).show();
+                    return;
+                }
 
                 //loginUser(email, password);
                 mAuth.signInWithEmailAndPassword(email, password)
@@ -180,16 +199,33 @@ public class MainActivity extends AppCompatActivity {
 
 
                                                 }else{
+                                                    progressDialog.dismiss();
                                                     Toast.makeText(MainActivity.this, "User document not found", Toast.LENGTH_SHORT).show();
                                                 }
                                             }else {
+                                                progressDialog.dismiss();
                                                 String errorMessage = task.getException().getMessage();
                                                 Toast.makeText(MainActivity.this, "Error: " + errorMessage, Toast.LENGTH_SHORT).show();
 
                                             }
                                         }
+                                    }).addOnFailureListener(new OnFailureListener() {
+                                        @Override
+                                        public void onFailure(@NonNull Exception exception) {
+                                            progressDialog.dismiss();
+                                            if (exception instanceof FirebaseAuthInvalidUserException) {
+                                                Toast.makeText(MainActivity.this, "Invalid user", Toast.LENGTH_SHORT).show();
+                                            } else if (exception instanceof FirebaseAuthInvalidCredentialsException) {
+                                                Toast.makeText(MainActivity.this, "Invalid credentials", Toast.LENGTH_SHORT).show();
+                                            } else if (exception instanceof FirebaseAuthException) {
+                                                Toast.makeText(MainActivity.this, "Firebase authentication failed", Toast.LENGTH_SHORT).show();
+                                            } else {
+                                                Toast.makeText(MainActivity.this, "Login failed: " + exception.getMessage(), Toast.LENGTH_SHORT).show();
+                                            }
+                                        }
                                     });
                                 } else {
+                                    progressDialog.dismiss();
                                     String errorMessage = task.getException().getMessage();
                                     Toast.makeText(MainActivity.this, "Login failed: " + errorMessage, Toast.LENGTH_SHORT).show();
                                 }

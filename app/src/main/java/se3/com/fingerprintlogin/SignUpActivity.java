@@ -167,8 +167,6 @@ public class SignUpActivity extends AppCompatActivity {
                             if (task.isSuccessful()){
                                 Toast.makeText(SignUpActivity.this, textFullName+" is successfully registered", Toast.LENGTH_LONG).show();
                                 FirebaseUser firebaseUser = firebaseAuth.getCurrentUser();
-//                    UserProfileChangeRequest profileChangeRequest = new UserProfileChangeRequest.Builder().setDisplayName(name).build();
-//                    firebaseUser.updateProfile(profileChangeRequest);
                                 UserDetails userDetails = new UserDetails(textFullName, textEmail, textNumber);
                                 String userId = firebaseUser.getUid();
                                 DocumentReference databaseReference = FirebaseFirestore.getInstance().collection("Registered Users").document(userId);
@@ -187,6 +185,7 @@ public class SignUpActivity extends AppCompatActivity {
                                                 String errorMessage = e.getMessage();
                                                 // Handle the error according to your requirements
                                                 Toast.makeText(SignUpActivity.this, "Registration failed", Toast.LENGTH_SHORT).show();
+                                                progressDialog.dismiss();
 
                                             }
                                         });
@@ -199,6 +198,7 @@ public class SignUpActivity extends AppCompatActivity {
                                     // Handle weak password error
                                     String errorCode = weakPasswordException.getErrorCode();
                                     String errorMessage = weakPasswordException.getMessage();
+                                    progressDialog.dismiss();
                                     Toast.makeText(SignUpActivity.this, errorCode+" "+errorMessage, Toast.LENGTH_SHORT).show();
 
                                     // Handle the error according to your requirements
@@ -206,6 +206,7 @@ public class SignUpActivity extends AppCompatActivity {
                                     // Handle invalid email error
                                     String errorCode = invalidCredentialsException.getErrorCode();
                                     String errorMessage = invalidCredentialsException.getMessage();
+                                    progressDialog.dismiss();
                                     Toast.makeText(SignUpActivity.this, errorCode+" "+errorMessage, Toast.LENGTH_SHORT).show();
 
                                     // Handle the error according to your requirements
@@ -213,6 +214,7 @@ public class SignUpActivity extends AppCompatActivity {
                                     // Handle user collision error (e.g., email already exists)
                                     String errorCode = userCollisionException.getErrorCode();
                                     String errorMessage = userCollisionException.getMessage();
+                                    progressDialog.dismiss();
                                     Toast.makeText(SignUpActivity.this, errorCode+" "+errorMessage, Toast.LENGTH_SHORT).show();
 
                                     // Handle the error according to your requirements
@@ -220,10 +222,11 @@ public class SignUpActivity extends AppCompatActivity {
                                     // Handle other errors
                                     String errorMessage = e.getMessage();
                                     // Handle the error according to your requirements
+                                    progressDialog.dismiss();
                                     Toast.makeText(SignUpActivity.this, errorMessage, Toast.LENGTH_SHORT).show();
 
                                 }
-
+                                progressDialog.dismiss();
                                 Toast.makeText(SignUpActivity.this, "Registration failed", Toast.LENGTH_SHORT).show();
                             }
 //                    Toast.makeText(SignUpActivity.this, "Registration failed", Toast.LENGTH_SHORT).show();
@@ -239,36 +242,49 @@ public class SignUpActivity extends AppCompatActivity {
     private boolean isValidDetails(String name, String email, String number, String password) {
 
         if (TextUtils.isEmpty(name)){
+            progressDialog.dismiss();
+
             editTextName.setError("Full name required!");
             editTextName.requestFocus();
             return false;
         }else if(TextUtils.isEmpty(email)){
+            progressDialog.dismiss();
+
             editTextEmail.setError("Email required!");
             editTextEmail.requestFocus();
             return false;
 
         }else if(!Patterns.EMAIL_ADDRESS.matcher(email).matches()){
+            progressDialog.dismiss();
+
             editTextEmail.setError("Valid email required!");
             editTextEmail.requestFocus();
             return false;
 
         }else if(TextUtils.isEmpty(number)){
+            progressDialog.dismiss();
+
             editTextNumber.setError("Phone number required!");
             editTextNumber.requestFocus();
             return false;
 
         }else if(number.length() !=9 ){
+            progressDialog.dismiss();
+
             editTextNumber.setError("Valid Phone number required!");
             editTextNumber.requestFocus();
             return false;
 
         }else if(TextUtils.isEmpty(password)){
+            progressDialog.dismiss();
+
             editTextPassword.setError("Password required!");
             editTextPassword.requestFocus();
             return false;
 
         }
         return true;
+
     }
 
     private void registerUser(String name, String email, String number, String password){

@@ -7,13 +7,13 @@
     android:background="@color/white"
     android:orientation="vertical"
     tools:context=".HomeActivity">
-    
+
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="300dp"
         android:background="@color/purple_500"
         android:padding="20dp">
-        
+
         <ImageView
             android:id="@+id/profile_image"
             android:layout_width="100dp"
@@ -21,7 +21,7 @@
             android:layout_centerVertical="true"
             android:src="@drawable/profile_image" />
         <TextView
-            android:id="@+id/fullname"
+            android:id="@+id/fullnameBig"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_centerVertical="true"
@@ -29,18 +29,18 @@
             android:layout_toRightOf="@+id/profile_image"
             android:fontFamily="@font/cairoplaybold"
             android:includeFontPadding="false"
-            android:text="Taimoor Sikander"
+            android:text="Epoupa Pelayah"
             android:textColor="#000"
             android:textSize="20sp" />
         <TextView
-            android:id="@+id/username_field"
+            android:id="@+id/email"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_below="@id/fullname"
+            android:layout_below="@id/fullnameBig"
             android:layout_marginLeft="10dp"
             android:layout_toRightOf="@+id/profile_image"
             android:includeFontPadding="false"
-            android:text="taimoor_sikander"
+            android:text="pelepoupa@gmail.com"
             android:textSize="14sp" />
     </RelativeLayout>
     <LinearLayout
@@ -91,48 +91,63 @@
         android:layout_width="match_parent"
         android:orientation="vertical"
         android:padding="20dp">
+
         <com.google.android.material.textfield.TextInputLayout
-            android:hint="Full Name"
-            android:id="@+id/full_name_profile"
-            android:layout_height="wrap_content"
-            android:layout_width="match_parent">
-            <com.google.android.material.textfield.TextInputEditText
+                    android:hint="Full Name"
+                    android:id="@+id/full_name_profile"
+                    android:layout_height="wrap_content"
+                    android:layout_width="match_parent">
+
+            <TextView
+                android:id="@+id/fullname_profile"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:padding="15dp"
+                android:textColor="#000"
                 android:drawableLeft="@drawable/username_small_icon"
                 android:drawablePadding="10dp"
+                android:fontFamily="@font/cairoplaylight"
+                android:text="Pelayah Epoupa"
+                android:textSize="20sp" />
+
+            <TextView
+                android:id="@+id/fullname_email"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_width="match_parent" />
-        </com.google.android.material.textfield.TextInputLayout>
-        <com.google.android.material.textfield.TextInputLayout
-            android:hint="Mobile Number"
-            android:id="@+id/mobile_number_profile"
-            android:layout_height="wrap_content"
-            android:layout_width="match_parent"
-            android:layout_marginTop="30dp">
-            <com.google.android.material.textfield.TextInputEditText
-                android:drawableLeft="@drawable/phone"
-                android:drawablePadding="10dp"
-                android:layout_height="wrap_content"
-                android:layout_width="match_parent" />
-        </com.google.android.material.textfield.TextInputLayout>
-        <com.google.android.material.textfield.TextInputLayout
-            android:hint="Email Address"
-            android:id="@+id/email_address_profile"
-            android:layout_height="wrap_content"
-            android:layout_width="match_parent"
-            android:layout_marginTop="30dp">
-            <com.google.android.material.textfield.TextInputEditText
+                android:padding="15dp"
+                android:textColor="#000"
                 android:drawableLeft="@drawable/email"
                 android:drawablePadding="10dp"
+                android:fontFamily="@font/cairoplaylight"
+                android:text="pelepoupa@gmail.com"
+                android:textSize="20sp" />
+
+            <TextView
+                android:id="@+id/fullname_phone"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_width="match_parent" />
+                android:padding="15dp"
+                android:textColor="#000"
+                android:drawableLeft="@drawable/phone"
+                android:drawablePadding="10dp"
+                android:fontFamily="@font/cairoplaylight"
+                android:text="650810984"
+                android:textSize="20sp" />
         </com.google.android.material.textfield.TextInputLayout>
-        <Button
-            android:background="@color/purple_500"
-            android:fontFamily="@font/cairoplaybold"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="30dp"
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnSignOut"
             android:layout_width="match_parent"
-            android:text="UPDATE" />
+            android:layout_height="wrap_content"
+            android:backgroundTint="@color/purple_500"
+            android:fontFamily="@font/comfortaabold"
+            android:paddingStart="20dp"
+            android:paddingTop="10dp"
+            android:paddingEnd="20dp"
+            android:paddingBottom="20dp"
+            android:drawableRight="@drawable/logout"
+            android:text="Logout"
+            android:textColor="@color/white"
+            app:cornerRadius="10dp" />
     </LinearLayout>
 
 </LinearLayout>
